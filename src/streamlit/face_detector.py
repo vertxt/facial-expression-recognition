@@ -25,21 +25,18 @@ class FaceDetector:
         elif self.model_type == 'dlib':
             pass
     
-    def get_bounding_box(self, detected_faces, threshold=0.5):
-        bounding_boxes = []
+    def get_bboxes(self, detected_faces, threshold=0.5):
+        bboxes = []
         num_detected_faces = len(detected_faces)
         if num_detected_faces:
             for face in detected_faces:
                 if face['confidence'] >= threshold:
                     if self.model_type == 'mtcnn':
-                        bounding_boxes.append(face['box'][0:4])
+                        bboxes.append(face['box'][0:4])
                     elif self.model_type == 'retinaface':
                         pass
                     elif self.model_type == 'yolo':
                         pass
                     elif self.model_type == 'dlib':
                         pass
-        return bounding_boxes
-            
-        
-            
+        return bboxes
