@@ -1,4 +1,6 @@
+import os
 import time
+import tempfile
 
 import streamlit as st
 import numpy as np
@@ -80,137 +82,77 @@ def image_demo():
 
     uploaded_files = st.file_uploader("Uploaded image...", type=["png", "jpg"], accept_multiple_files=True)
     if uploaded_files is not None:
-        cols = st.columns(len(uploaded_files))
+        if st.button("Run"):
+            cols = st.columns(len(uploaded_files))
 
-        for i, uploaded_file in enumerate(uploaded_files):
-            # Reading the image using cv2.imdecode will create problems (e.g., unexpected number of detected faces)
-            #   file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
-            #   img = cv2.imdecode(file_bytes, 1)
+            for i, uploaded_file in enumerate(uploaded_files):
+                # Reading the image using cv2.imdecode will create problems (e.g., unexpected number of detected faces)
+                #   file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
+                #   img = cv2.imdecode(file_bytes, 1)
 
-            img = Image.open(uploaded_file)
-            img = np.array(img)
-            out_img = img.copy()
+                img = Image.open(uploaded_file)
+                img = np.array(img)
+                out_img = img.copy()
 
-            face_detector = FaceDetector(face_detector_type)
-
-            fd_start_time = time.time()
-
-            detected_faces = face_detector.detect_faces(img)
-            bboxes = face_detector.get_bboxes(detected_faces, detection_threshold)
-
-            fd_end_time = time.time()
-
-            emotion_counts = {label: 0 for label in EmotionLabel.labels}
-
-            fer_start_time = time.time()
-
-            emotions = []
-            cropped_faces = []
-            for bbox in bboxes:
-                x, y, w, h = bbox
-
-                cropped_face = img[y:y+h, x:x+w, :]
-                cropped_faces.append(cropped_face)
-
+                face_detector = FaceDetector(face_detector_type)
                 model = torch.load(f"./models/raf/{model_name}.pt", map_location=torch.device("cpu"))
                 model = model.to(device)
                 model.eval()
 
-                img_tensor = preprocess(Image.fromarray(cropped_face))
+                # Face detection
+                fd_start_time = time.time()
 
-                scores = model(img_tensor.to(device))
-                scores = scores[0].data.cpu().numpy()
+                detected_faces = face_detector.detect_faces(img)
+                bboxes = face_detector.get_bboxes(detected_faces, detection_threshold)
 
-                emotion = EmotionLabel.get_label(np.argmax(scores))
-                emotions.append(emotion)
-                emotion_counts[emotion] += 1
+                fd_end_time = time.time()
 
-                cv2.rectangle(out_img, (x, y), (x + w, y + h), (0, 255, 0), 2)           
-                cv2.putText(out_img, emotion, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
+                # FER
+                fer_start_time = time.time()
 
-            fer_end_time = time.time()
+                emotion_counts = {label: 0 for label in EmotionLabel.labels}
 
-            with cols[i]:
-                st.image(out_img)
-                st.write(f"Face detection runtime: {format(fd_end_time - fd_start_time, '.2f')} seconds")
-                st.write(f"FER runtime: {format(fer_end_time - fer_start_time, '.2f')} seconds")
-                st.write(f"Detected faces: {len(bboxes)}")
+                emotions = []
+                cropped_faces = []
+                for bbox in bboxes:
+                    x, y, w, h = bbox
 
-                fig, ax = plt.subplots()
-                ax.bar(emotion_counts.keys(), emotion_counts.values())
-                ax.set_xlabel("Expressions")
-                ax.set_ylabel("Frequency")
-                st.pyplot(fig)
+                    cropped_face = img[y:y+h, x:x+w, :]
+                    cropped_faces.append(cropped_face)
 
-                for j, bbox in enumerate(bboxes):
-                    face_container = st.container()
-                    with face_container:
-                        st.image(cropped_faces[j], caption=f"Face {j+1}")
-                        st.write(f"Emotion: {emotions[j]}")
+                    img_tensor = preprocess(Image.fromarray(cropped_face))
 
-def video_demo():
-    """
-    frame_skip = 2
-    frame_count = 0
-
-    file_path = './test_media/vids/IMG_4793.MOV'
-    cap = cv2.VideoCapture(file_path)
-
-    frame_width = int(cap.get(3))
-    frame_height = int(cap.get(4))
-
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    out = cv2.VideoWriter('./output/hospital_test.MOV', fourcc, 20.0, (frame_width, frame_height))
-
-    prev_bboxes = []
-    prev_emos = []
-    prev_confs = []
-
-    while(cap.isOpened()):
-        ret, frame = cap.read()
-        if ret == True:
-            frame_count += 1
-            if frame_count % frame_skip == 0:
-                detected_faces = face_detector.detect_faces(frame)
-                prev_bboxes.clear()
-                prev_emos.clear()
-                prev_confs.clear()
-                for face in detected_faces:
-                    box = face['box']
-                    x, y, w, h = box[0:4]
-                    cropped_face = frame[y:y+h, x:x+w, :]
-                    img_tensor = test_transforms(Image.fromarray(cropped_face))
-                    img_tensor.unsqueeze_(0)
                     scores = model(img_tensor.to(device))
                     scores = scores[0].data.cpu().numpy()
+
                     emotion = EmotionLabel.get_label(np.argmax(scores))
-                    
-                    prev_bboxes.append([x, y, w, h])
-                    prev_emos.append(emotion)
-                    prev_confs.append(np.max(scores))
-                    
-                    cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-                    cv2.putText(frame, f"{emotion} ({np.max(scores) * 100:.2f}%)", (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36, 255, 12), 2)
-            else:
-                for i in range(len(prev_bboxes)):
-                    x, y, w, h = prev_bboxes[i]
-                    emotion = prev_emos[i]
-                    score = prev_confs[i]
-                    cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-                    cv2.putText(frame, f"{emotion} ({score * 100:.2f}%)", (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36, 255, 12), 2)
-                    
-            out.write(frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-        else:
-            break
+                    emotions.append(emotion)
+                    emotion_counts[emotion] += 1
 
-    print(f"Frame rate: {cap.get(cv2.CAP_PROP_FPS)}")
+                    cv2.rectangle(out_img, (x, y), (x + w, y + h), (0, 255, 0), 2)           
+                    cv2.putText(out_img, emotion, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
 
-    cap.release()
-    out.release()
-    cv2.destroyAllWindows()
-    """
+                fer_end_time = time.time()
+
+                with cols[i]:
+                    st.image(out_img)
+                    st.write(f"Face detection runtime: {format(fd_end_time - fd_start_time, '.2f')} seconds")
+                    st.write(f"FER runtime: {format(fer_end_time - fer_start_time, '.2f')} seconds")
+                    st.write(f"Detected faces: {len(bboxes)}")
+
+                    fig, ax = plt.subplots()
+                    ax.bar(emotion_counts.keys(), emotion_counts.values())
+                    ax.set_xlabel("Expressions")
+                    ax.set_ylabel("Frequency")
+                    st.pyplot(fig)
+
+                    for j, bbox in enumerate(bboxes):
+                        face_container = st.container()
+                        with face_container:
+                            st.image(cropped_faces[j], caption=f"Face {j+1}")
+                            st.write(f"Emotion: {emotions[j]}")
+
+def video_demo():
     st.title("Video demo")
     st.write(f"CUDA available? {use_cuda}")
 
@@ -219,12 +161,92 @@ def video_demo():
         face_detector_type = st.selectbox("Detector", list(face_detectors))
         detection_threshold = st.slider("Threshold", 0.0, 1.0, 0.5)
         frame_skip = st.number_input("#Frames to skip", value=0)
+        fps = st.number_input("Output video's FPS", value=24.0)
         
     uploaded_files = st.file_uploader("Uploaded image...", type=["mp4", "mov"], accept_multiple_files=True)
     if uploaded_files is not None:
         cols = st.columns(len(uploaded_files))
+
         for i, uploaded_file in enumerate(uploaded_files):
-            st.write(uploaded_file.name)
+            with cols[i]:
+                # Why can't this fucker display .MOV files?
+                st.video(uploaded_file)
+
+        if st.button("Run"):
+            for i, uploaded_file in enumerate(uploaded_files):
+                tfile = tempfile.NamedTemporaryFile(delete=False)
+                tfile.write(uploaded_file.read())
+                tfile.close()
+
+                frame_count = 0
+
+                cap = cv2.VideoCapture(tfile.name)
+
+                frame_width = int(cap.get(3))
+                frame_height = int(cap.get(4))
+
+                fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+                out = cv2.VideoWriter(f"./output/{fps}fps_skip{frame_skip}_{uploaded_file.name}", fourcc, fps, (frame_width, frame_height))
+
+                prev_bboxes = []
+                prev_emotions = []
+                prev_confidences = []
+
+                face_detector = FaceDetector(face_detector_type)
+                model = torch.load(f"./models/raf/{model_name}.pt", map_location=torch.device("cpu"))
+                model = model.to(device)
+                model.eval()
+
+                while(cap.isOpened()):
+                    ret, frame = cap.read()
+                    if ret == True:
+                        frame_count += 1
+                        if frame_count % frame_skip == 0:
+                            prev_bboxes.clear()
+                            prev_emotions.clear()
+                            prev_confidences.clear()
+
+                            detected_faces = face_detector.detect_faces(frame)
+                            bboxes = face_detector.get_bboxes(detected_faces, detection_threshold)
+
+                            for bbox in bboxes:
+                                x, y, w, h = bbox[0:4]
+                                cropped_face = frame[y:y+h, x:x+w, :]
+
+                                img_tensor = preprocess(Image.fromarray(cropped_face))
+
+                                scores = model(img_tensor.to(device))
+                                scores = scores[0].data.cpu().numpy()
+
+                                emotion = EmotionLabel.get_label(np.argmax(scores))
+                                
+                                prev_bboxes.append([x, y, w, h])
+                                prev_emotions.append(emotion)
+                                prev_confidences.append(np.max(scores))
+                                
+                                cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                                cv2.putText(frame, f"{emotion} ({np.max(scores) * 100:.2f}%)", (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36, 255, 12), 2)
+                        else:
+                            for i in range(len(prev_bboxes)):
+                                x, y, w, h = prev_bboxes[i]
+                                emotion = prev_emotions[i]
+                                score = prev_confidences[i]
+                                cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                                cv2.putText(frame, f"{emotion} ({score * 100:.2f}%)", (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36, 255, 12), 2)
+
+                        out.write(frame)
+                    else:
+                        break;
+
+                st.write(f"Frame rate: {cap.get(cv2.CAP_PROP_FPS)}")
+
+                cap.release()
+                out.release()
+                cv2.destroyAllWindows()
+
+                # Remove the temoporary file when done
+                time.sleep(1)
+                os.remove(tfile.name)
 
 apps = {
     "image_demo",
