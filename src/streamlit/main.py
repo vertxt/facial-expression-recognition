@@ -149,14 +149,82 @@ def image_demo():
                         st.write(f"Emotion: {emotions[j]}")
 
 def video_demo():
+    """
+    frame_skip = 2
+    frame_count = 0
+
+    file_path = './test_media/vids/IMG_4793.MOV'
+    cap = cv2.VideoCapture(file_path)
+
+    frame_width = int(cap.get(3))
+    frame_height = int(cap.get(4))
+
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter('./output/hospital_test.MOV', fourcc, 20.0, (frame_width, frame_height))
+
+    prev_bboxes = []
+    prev_emos = []
+    prev_confs = []
+
+    while(cap.isOpened()):
+        ret, frame = cap.read()
+        if ret == True:
+            frame_count += 1
+            if frame_count % frame_skip == 0:
+                detected_faces = face_detector.detect_faces(frame)
+                prev_bboxes.clear()
+                prev_emos.clear()
+                prev_confs.clear()
+                for face in detected_faces:
+                    box = face['box']
+                    x, y, w, h = box[0:4]
+                    cropped_face = frame[y:y+h, x:x+w, :]
+                    img_tensor = test_transforms(Image.fromarray(cropped_face))
+                    img_tensor.unsqueeze_(0)
+                    scores = model(img_tensor.to(device))
+                    scores = scores[0].data.cpu().numpy()
+                    emotion = EmotionLabel.get_label(np.argmax(scores))
+                    
+                    prev_bboxes.append([x, y, w, h])
+                    prev_emos.append(emotion)
+                    prev_confs.append(np.max(scores))
+                    
+                    cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                    cv2.putText(frame, f"{emotion} ({np.max(scores) * 100:.2f}%)", (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36, 255, 12), 2)
+            else:
+                for i in range(len(prev_bboxes)):
+                    x, y, w, h = prev_bboxes[i]
+                    emotion = prev_emos[i]
+                    score = prev_confs[i]
+                    cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                    cv2.putText(frame, f"{emotion} ({score * 100:.2f}%)", (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36, 255, 12), 2)
+                    
+            out.write(frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+        else:
+            break
+
+    print(f"Frame rate: {cap.get(cv2.CAP_PROP_FPS)}")
+
+    cap.release()
+    out.release()
+    cv2.destroyAllWindows()
+    """
     st.title("Video demo")
     st.write(f"CUDA available? {use_cuda}")
 
     with st.sidebar:
-        model = st.selectbox("Model", list(models))
-        face_detector = st.selectbox("Detector", list(face_detectors))
-        threshold = st.slider("Threshold", 0.0, 1.0, 0.5)
+        model_name = st.selectbox("Model", list(models))
+        face_detector_type = st.selectbox("Detector", list(face_detectors))
+        detection_threshold = st.slider("Threshold", 0.0, 1.0, 0.5)
         frame_skip = st.number_input("#Frames to skip", value=0)
+        
+    uploaded_files = st.file_uploader("Uploaded image...", type=["mp4", "mov"], accept_multiple_files=True)
+    if uploaded_files is not None:
+        cols = st.columns(len(uploaded_files))
+        for i, uploaded_file in enumerate(uploaded_files):
+            st.write(uploaded_file.name)
 
 apps = {
     "image_demo",
