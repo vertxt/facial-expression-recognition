@@ -229,7 +229,7 @@ def video_demo():
                 st.video(uploaded_file)
 
         if st.button("Run"):
-            for i, uploaded_file in enumerate(uploaded_files):
+            for f, uploaded_file in enumerate(uploaded_files):
                 tfile = tempfile.NamedTemporaryFile(delete=False)
                 tfile.write(uploaded_file.read())
                 tfile.close()
@@ -335,7 +335,7 @@ def video_demo():
                 out.release()
                 cv2.destroyAllWindows()
 
-                with cols[i]:
+                with cols[f]:
                     # mean_emotion_freq = {emotion: count / (frame_count / (frame_skip + 1)) for emotion, count in emotion_counts.items()}
                     mean_emotion_freq = {emotion: count for emotion, count in emotion_counts.items()}
 
