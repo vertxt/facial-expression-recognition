@@ -58,6 +58,11 @@ def preprocess(img):
 
     return img_tensor
 
+def predict_with_softmax(model, data):
+    output = model(data)
+    probabilities = torch.nn.functional.softmax(output, dim=1)
+    return probabilities
+
 # Demo ------------------------------------------------------------------------
 
 models = {
@@ -65,6 +70,8 @@ models = {
     "affectnet_enet_b2",
     "raf_enet_b0",
     "raf_enet_b2",
+    "raf_enet_b0_6epochs",
+    "raf_enet_b0_10epochs",
 }
 
 face_detectors = {
@@ -165,7 +172,8 @@ def image_demo():
                         img_tensor = preprocess(Image.fromarray(face))
 
                         # TODO: Use softmax
-                        scores = model(img_tensor.to(device))
+                        # scores = model(img_tensor.to(device))
+                        scores = predict_with_softmax(model, img_tensor.to(device))
                         scores = scores[0].data.cpu().numpy()
 
                         emotion = EmotionLabel.get_label(np.argmax(scores))
@@ -274,7 +282,8 @@ def video_demo():
                                     img_tensor = preprocess(Image.fromarray(face))
 
                                     # TODO: Use softmax
-                                    scores = model(img_tensor.to(device))
+                                    # scores = model(img_tensor.to(device))
+                                    scores = predict_with_softmax(model, img_tensor.to(device))
                                     scores = scores[0].data.cpu().numpy()
 
                                     emotion = EmotionLabel.get_label(np.argmax(scores))
