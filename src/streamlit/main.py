@@ -336,16 +336,25 @@ def video_demo():
                 cv2.destroyAllWindows()
 
                 with cols[f]:
-                    # mean_emotion_freq = {emotion: count / (frame_count / (frame_skip + 1)) for emotion, count in emotion_counts.items()}
+                    mean_emotion_mean_freq = {emotion: count / (frame_count / (frame_skip + 1)) for emotion, count in emotion_counts.items()}
                     mean_emotion_freq = {emotion: count for emotion, count in emotion_counts.items()}
 
                     emotions = list(mean_emotion_freq.keys())
                     freqs = list(mean_emotion_freq.values())
+                    mean_freqs = list(mean_emotion_mean_freq.values())
 
                     fig, ax = plt.subplots()
                     ax.bar(emotions, freqs)
                     ax.set_xlabel("Expressions")
-                    ax.set_ylabel("Frequency")
+                    ax.set_ylabel("Frequencies")
+                    ax.set_title("Expression frequencies")
+                    st.pyplot(fig)
+
+                    fig, ax = plt.subplots()
+                    ax.bar(emotions, mean_freqs)
+                    ax.set_xlabel("Expressions")
+                    ax.set_ylabel("Mean Frequencies")
+                    ax.set_title("Expression mean frequencies")
                     st.pyplot(fig)
 
                 # Remove the temoporary file when done
