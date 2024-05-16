@@ -193,9 +193,13 @@ def image_demo():
                     st.write(f"Detected faces: {len(extracted_faces)}")
 
                     fig, ax = plt.subplots()
-                    ax.bar(emotion_counts.keys(), emotion_counts.values())
+                    bars = ax.bar(emotion_counts.keys(), emotion_counts.values(), color=plt.cm.get_cmap('rainbow', 7)(range(7)))
                     ax.set_xlabel("Expressions")
                     ax.set_ylabel("Frequency")
+                    ax.set_title("Expression frequencies")
+                    for bar in bars:
+                        yval = bar.get_height()
+                        ax.text(bar.get_x() + bar.get_width()/2.0 - 0.1, yval, round(yval, 2), va='bottom')
                     st.pyplot(fig)
 
                     for j in range(len(faces)):
@@ -225,7 +229,6 @@ def video_demo():
 
         for i, uploaded_file in enumerate(uploaded_files):
             with cols[i]:
-                # Why can't this fucker display .MOV files?
                 st.video(uploaded_file)
 
         if st.button("Run"):
@@ -335,6 +338,10 @@ def video_demo():
                 out.release()
                 cv2.destroyAllWindows()
 
+                video_file = open(f"./output/{out_filename}", 'rb')
+                video_bytes = video_file.read()
+                st.video(video_bytes)                
+
                 with cols[f]:
                     mean_emotion_mean_freq = {emotion: count / (frame_count / (frame_skip + 1)) for emotion, count in emotion_counts.items()}
                     mean_emotion_freq = {emotion: count for emotion, count in emotion_counts.items()}
@@ -344,17 +351,23 @@ def video_demo():
                     mean_freqs = list(mean_emotion_mean_freq.values())
 
                     fig, ax = plt.subplots()
-                    ax.bar(emotions, freqs)
+                    bars = ax.bar(emotions, freqs, color=plt.cm.get_cmap('rainbow', len(emotions))(range(len(emotions))))
                     ax.set_xlabel("Expressions")
                     ax.set_ylabel("Frequencies")
                     ax.set_title("Expression frequencies")
+                    for bar in bars:
+                        yval = bar.get_height()
+                        ax.text(bar.get_x() + bar.get_width()/2.0 - 0.1, yval, round(yval, 2), va='bottom')
                     st.pyplot(fig)
 
                     fig, ax = plt.subplots()
-                    ax.bar(emotions, mean_freqs)
+                    bars = ax.bar(emotions, mean_freqs, color=plt.cm.get_cmap('rainbow', 7)(range(7)))
                     ax.set_xlabel("Expressions")
                     ax.set_ylabel("Mean Frequencies")
                     ax.set_title("Expression mean frequencies")
+                    for bar in bars:
+                        yval = bar.get_height()
+                        ax.text(bar.get_x() + bar.get_width()/2.0 - 0.1, yval, round(yval, 2), va='bottom')
                     st.pyplot(fig)
 
                 # Remove the temoporary file when done
