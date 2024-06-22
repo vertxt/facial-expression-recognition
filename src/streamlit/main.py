@@ -34,11 +34,11 @@ class EmotionLabel:
         "Anger",
         "Neutral"
     ]
-    
+
     @staticmethod
     def get_label(index):
         return EmotionLabel.labels[index]
-    
+
     @staticmethod
     def get_index(label):
         return EmotionLabel.labels.index(label)
@@ -108,7 +108,7 @@ def image_demo():
                 #   file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
                 #   img = cv2.imdecode(file_bytes, 1)
 
-                tfile = tempfile.NamedTemporaryFile(delete=False) 
+                tfile = tempfile.NamedTemporaryFile(delete=False)
                 tfile.write(uploaded_file.getvalue())
                 tfile.close()
 
@@ -157,7 +157,7 @@ def image_demo():
                 #     emotions.append(emotion)
                 #     emotion_counts[emotion] += 1
                 #
-                #     cv2.rectangle(out_img, (x, y), (x + w, y + h), (0, 255, 0), 2)           
+                #     cv2.rectangle(out_img, (x, y), (x + w, y + h), (0, 255, 0), 2)
                 #     cv2.putText(out_img, emotion, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
 
                 for extracted_face in extracted_faces:
@@ -180,10 +180,15 @@ def image_demo():
                         emotions.append(emotion)
                         emotion_counts[emotion] += 1
 
-                        cv2.rectangle(out_img, (x, y), (x + w, y + h), (0, 255, 0), 2)           
+                        cv2.rectangle(out_img, (x, y), (x + w, y + h), (0, 255, 0), 2)
                         cv2.putText(out_img, emotion, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
 
                 fer_end_time = time.time()
+
+                # Save the output image
+                output_filename = f"{os.path.splitext(uploaded_file.name)[0]}_{face_detector_type}_{detection_threshold}"
+                output_image_name = f"./output/images/{output_filename}.png"
+                cv2.imwrite(output_image_name, cv2.cvtColor(out_img, cv2.COLOR_RGB2BGR))
 
                 with cols[i]:
                     st.image(out_img)
@@ -192,6 +197,7 @@ def image_demo():
                     # st.write(f"Detected faces: {len(bboxes)}")
                     st.write(f"Detected faces: {len(extracted_faces)}")
 
+                    # Plot the expression counts
                     fig, ax = plt.subplots()
                     bars = ax.bar(emotion_counts.keys(), emotion_counts.values(), color=plt.cm.get_cmap('rainbow', 7)(range(7)))
                     ax.set_xlabel("Expressions")
@@ -201,6 +207,10 @@ def image_demo():
                         yval = bar.get_height()
                         ax.text(bar.get_x() + bar.get_width()/2.0 - 0.1, yval, round(yval, 2), va='bottom')
                     st.pyplot(fig)
+
+                    # Save the plot
+                    output_plot_name = f"./output/images/{output_filename}.pdf"
+                    fig.savefig(output_plot_name)
 
                     for j in range(len(faces)):
                         face_container = st.container()
@@ -222,7 +232,7 @@ def video_demo():
         align_face = st.checkbox("Align detected faces", value=False)
         frame_skip = st.number_input("#Frames to skip", value=0)
         # fps = st.number_input("Output video's FPS", value=24.0)
-        
+
     uploaded_files = st.file_uploader("Uploaded image...", type=["mp4", "mov"], accept_multiple_files=True)
     if uploaded_files is not None:
         cols = st.columns(len(uploaded_files))
@@ -248,8 +258,9 @@ def video_demo():
 
                 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 
-                out_filename = f"{face_detector_type}_{model_name}_fps{fps}_skip{frame_skip}_{uploaded_file.name.split('.')[0]}.mp4"
-                out = cv2.VideoWriter(f"./output/{out_filename}", fourcc, fps, (frame_width, frame_height))
+                file_extension = "mp4"
+                out_filename = f"{uploaded_file.name.split('.')[0]}_{face_detector_type}_{model_name}_fps{fps}_skip{frame_skip}"
+                out = cv2.VideoWriter(f"./output/videos/{out_filename}.{file_extension}", fourcc, fps, (frame_width, frame_height))
 
                 # face_detector = FaceDetector(face_detector_type)
                 model = torch.load(f"./models/{model_name.split('_')[0]}/{model_name}.pt", map_location=torch.device("cpu"))
@@ -295,7 +306,7 @@ def video_demo():
                                     prev_bboxes.append([x, y, w, h])
                                     prev_emotions.append(emotion)
                                     prev_confidences.append(np.max(scores))
-                                    
+
                                     cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
                                     cv2.putText(frame, f"{emotion} ({np.max(scores) * 100:.2f}%)", (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36, 255, 12), 2)
 
@@ -313,11 +324,11 @@ def video_demo():
                             #
                             #     emotion = EmotionLabel.get_label(np.argmax(scores))
                             #     emotion_counts[emotion] += 1
-                            #     
+                            #
                             #     prev_bboxes.append([x, y, w, h])
                             #     prev_emotions.append(emotion)
                             #     prev_confidences.append(np.max(scores))
-                            #     
+                            #
                             #     cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
                             #     cv2.putText(frame, f"{emotion} ({np.max(scores) * 100:.2f}%)", (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36, 255, 12), 2)
                         else:
@@ -338,9 +349,9 @@ def video_demo():
                 out.release()
                 cv2.destroyAllWindows()
 
-                video_file = open(f"./output/{out_filename}", 'rb')
+                video_file = open(f"./output/videos/{out_filename}.{file_extension}", 'rb')
                 video_bytes = video_file.read()
-                st.video(video_bytes)                
+                st.video(video_bytes)
 
                 with cols[f]:
                     mean_emotion_mean_freq = {emotion: count / (frame_count / (frame_skip + 1)) for emotion, count in emotion_counts.items()}
@@ -360,6 +371,10 @@ def video_demo():
                         ax.text(bar.get_x() + bar.get_width()/2.0 - 0.1, yval, round(yval, 2), va='bottom')
                     st.pyplot(fig)
 
+                    # Save the plot
+                    output_plot_name = f"./output/videos/{out_filename}_freq_plot.pdf"
+                    fig.savefig(output_plot_name)
+
                     fig, ax = plt.subplots()
                     bars = ax.bar(emotions, mean_freqs, color=plt.cm.get_cmap('rainbow', 7)(range(7)))
                     ax.set_xlabel("Expressions")
@@ -369,6 +384,10 @@ def video_demo():
                         yval = bar.get_height()
                         ax.text(bar.get_x() + bar.get_width()/2.0 - 0.1, yval, round(yval, 2), va='bottom')
                     st.pyplot(fig)
+
+                    # Save the mean frequencies plot
+                    output_mean_freq_plot_name = f"./output/videos/{out_filename}_mean_freq_plot.pdf"
+                    fig.savefig(output_mean_freq_plot_name)
 
                 # Remove the temoporary file when done
                 time.sleep(1) # takes some time to be able to remove
