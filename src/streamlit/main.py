@@ -186,7 +186,7 @@ def image_demo():
                 fer_end_time = time.time()
 
                 # Save the output image
-                output_filename = f"{os.path.splitext(uploaded_file.name)[0]}_{face_detector_type}_{detection_threshold}"
+                output_filename = f"{os.path.splitext(uploaded_file.name)[0]}_{model_name}_{face_detector_type}_threshold{detection_threshold}_enforce-{str(enforce_detection).lower()}_aligne-{str(align_face).lower()}"
                 output_image_name = f"./output/images/{output_filename}.png"
                 cv2.imwrite(output_image_name, cv2.cvtColor(out_img, cv2.COLOR_RGB2BGR))
 
@@ -259,7 +259,7 @@ def video_demo():
                 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 
                 file_extension = "mp4"
-                out_filename = f"{uploaded_file.name.split('.')[0]}_{face_detector_type}_{model_name}_fps{fps}_skip{frame_skip}"
+                out_filename = f"{uploaded_file.name.split('.')[0]}_{model_name}_{face_detector_type}_threshold{detection_threshold}_enforce-{str(enforce_detection).lower()}_align-{str(align_face).lower()}_fps{fps}_skip{frame_skip}"
                 out = cv2.VideoWriter(f"./output/videos/{out_filename}.{file_extension}", fourcc, fps, (frame_width, frame_height))
 
                 # face_detector = FaceDetector(face_detector_type)
