@@ -186,7 +186,7 @@ def image_demo():
                 fer_end_time = time.time()
 
                 # Save the output image
-                output_filename = f"{os.path.splitext(uploaded_file.name)[0]}_{model_name}_{face_detector_type}_threshold{detection_threshold}_enforce-{str(enforce_detection).lower()}_aligne-{str(align_face).lower()}"
+                output_filename = f"{os.path.splitext(uploaded_file.name)[0]}_{model_name}_{face_detector_type}_threshold{detection_threshold}_enforce-{str(enforce_detection).lower()}_align-{str(align_face).lower()}"
                 output_image_name = f"./output/images/{output_filename}.png"
                 cv2.imwrite(output_image_name, cv2.cvtColor(out_img, cv2.COLOR_RGB2BGR))
 
