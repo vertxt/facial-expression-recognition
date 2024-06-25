@@ -9,6 +9,8 @@ This is how the streamlit app looks like. There are various options for face det
 | --- | --- |
 | <img width="1238" alt="streamlit_img_demo" src="https://github.com/LukasAbraham/facial-expression-recognition/assets/94582919/60b769ae-e9c7-4c85-8086-2bdcfd46d8fa"> | <img width="1238" alt="streamlit_vid_demo" src="https://github.com/LukasAbraham/facial-expression-recognition/assets/94582919/a83f6ca2-843b-412f-8c28-7e77f1c2957f"> |
 
+Note that our pretrained EfficientNet model weights were obtained from [this repository](https://github.com/av-savchenko/face-emotion-recognition) by Andrey V.Savchenko.
+
 ## Our members
 | Name | Student Id | Github |
 | --- | --- | --- |
